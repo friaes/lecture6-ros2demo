@@ -1,0 +1,44 @@
+/.vscode
+
+# ROS2 Build Artifacts
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+.Python
+*.pyc
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Gazebo
+.gazebo/
+
+# Temporary
+*.tmp
+*.bak
+*.log
+
+# IDE
+.idea/
+*.iml
+
+# Cloned repos (from post-create.sh)
+src/DynamixelSDK/
+src/turtlebot3_simulations/
+src/turtlebot3/
+src/turtlebot3_msgs/
