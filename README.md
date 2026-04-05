@@ -1,3 +1,276 @@
+## Exercise 6 Submission Notes
+[My fork](https://github.com/friaes/lecture6-ros2demo)
+
+### Task 1a: Package Creation & Circle Motion Publisher
+
+Implemented package: `student_robotics` (ament_python)
+
+#### 1. Package structure (`tree student_robotics`)
+
+```text
+student_robotics/
+├── package.xml
+├── resource/
+│   └── student_robotics
+├── setup.cfg
+├── setup.py
+├── student_robotics/
+│   ├── __init__.py
+│   └── circle_motion.py
+└── test/
+    ├── test_copyright.py
+    ├── test_flake8.py
+    └── test_pep257.py
+```
+
+#### 2. Python code of `circle_motion.py`
+
+```python
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+
+
+class CircleMotionPublisher(Node):
+    def __init__(self) -> None:
+        super().__init__('circle_motion')
+        self.publisher_ = self.create_publisher(
+            Twist,
+            '/cmd_vel',
+            10
+        )
+        self.timer = self.create_timer(0.1, self.publish_velocity)
+        self.get_logger().info('Circle Motion Publisher started! Publishing to /cmd_vel')
+
+    def publish_velocity(self) -> None:
+        msg = Twist()
+        msg.linear.x = 0.3
+        msg.angular.z = 0.5
+        self.publisher_.publish(msg)
+        self.get_logger().info(
+            f'Publishing velocity: linear={msg.linear.x}, angular={msg.angular.z}'
+        )
+
+
+def main(args=None) -> None:
+    rclpy.init(args=args)
+    node = CircleMotionPublisher()
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+#### 3. Build and run commands used
+
+Terminal1:
+```bash
+cd /workspace/turtlebot3_ws
+tb3_empty
+```
+Terminal2:
+```bash
+cd /workspace/turtlebot3_ws
+colcon build --packages-select student_robotics
+source install/setup.bash
+ros2 run student_robotics circle_motion
+```
+
+#### 4. Screenshot
+
+![screenshot](robot_moving_in_circles.png)
+
+#### 5. Why use `create_timer()`?
+
+create_timer() executes a callback periodically at a fixed rate (10 Hz). This allows continuous velocity publishing while keeping the ROS2 executor responsive for other callbacks and communication events.
+
+### Task 1b
+
+#### 1. Python code of `odom_monitor.py`
+
+```python
+import rclpy
+from rclpy.node import Node
+from nav_msgs.msg import Odometry
+
+
+class OdomMonitor(Node):
+    def __init__(self) -> None:
+        super().__init__('odom_monitor')
+        self.subscription = self.create_subscription(
+            Odometry,
+            '/odom',
+            self.odom_callback,
+            10,
+        )
+        self.get_logger().info('Odom Monitor started! Listening to /odom')
+
+    def odom_callback(self, msg: Odometry) -> None:
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+        vx = msg.twist.twist.linear.x
+        vz = msg.twist.twist.angular.z
+        self.get_logger().info(
+            f'Position: x={x:.2f}, y={y:.2f} | '
+            f'Velocity: vx={vx:.2f}, vz={vz:.2f}'
+        )
+
+
+def main(args=None) -> None:
+    rclpy.init(args=args)
+    node = OdomMonitor()
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+#### 2. Screenshots
+
+- Screenshot of terminal output showing both nodes running: ![image](nodes_running.png)
+- Screenshot of terminal output showing `ros2 node list`: ![image](list_nodes.png)
+
+#### 3. How does pub-sub decoupling work?
+
+The publisher and subscriber do not need to know about each other directly; they only interact through the /cmd_vel and /odom topics. A publisher distributes messages to a topic, while subscribers registered to that topic independently receive the published information. This makes the nodes decoupled, so either side can be started, stopped, or replaced independently as long as the topic and message type stay compatible.
+
+### Task 2a
+
+#### 1. Terminal output: `ros2 topic list`
+
+```text
+/clock
+/cmd_vel
+/imu
+/joint_states
+/odom
+/parameter_events
+/performance_metrics
+/robot_description
+/rosout
+/scan
+/tf
+/tf_static
+```
+
+#### 2. Terminal output: `ros2 topic info /cmd_vel`
+
+```text
+Type: geometry_msgs/msg/Twist
+Publisher count: 1
+Subscription count: 1
+```
+
+#### 3. Terminal output: `ros2 topic info /odom`
+
+```text
+Type: nav_msgs/msg/Odometry
+Publisher count: 1
+Subscription count: 1
+```
+
+#### 4. Terminal output: `ros2 topic hz /odom`
+
+```text
+average rate: 29.381
+        min: 0.031s max: 0.037s std dev: 0.00145s window: 31
+average rate: 29.377
+        min: 0.031s max: 0.037s std dev: 0.00125s window: 61
+average rate: 29.356
+        min: 0.031s max: 0.037s std dev: 0.00118s window: 91
+average rate: 29.352
+        min: 0.031s max: 0.037s std dev: 0.00119s window: 121
+...
+```
+
+#### 5. Terminal output: `ros2 topic bw /odom`
+
+```text
+Subscribed to [/odom]
+21.44 KB/s from 29 messages
+        Message size mean: 0.72 KB min: 0.72 KB max: 0.72 KB
+21.58 KB/s from 59 messages
+        Message size mean: 0.72 KB min: 0.72 KB max: 0.72 KB
+21.39 KB/s from 88 messages
+        Message size mean: 0.72 KB min: 0.72 KB max: 0.72 KB
+21.28 KB/s from 100 messages
+        Message size mean: 0.72 KB min: 0.72 KB max: 0.72 KB
+...
+```
+
+#### 6. Terminal output: `ros2 node list`
+
+```text
+/circle_motion
+/gazebo
+/odom_monitor
+/robot_state_publisher
+/turtlebot3_diff_drive
+/turtlebot3_imu
+/turtlebot3_joint_state
+/turtlebot3_laserscan
+```
+
+#### 7. Terminal output: `ros2 node info /circle_motion`
+
+```text
+/circle_motion
+  Subscribers:
+
+  Publishers:
+    /cmd_vel: geometry_msgs/msg/Twist
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+  Service Servers:
+    /circle_motion/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /circle_motion/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /circle_motion/get_parameters: rcl_interfaces/srv/GetParameters
+    /circle_motion/list_parameters: rcl_interfaces/srv/ListParameters
+    /circle_motion/set_parameters: rcl_interfaces/srv/SetParameters
+    /circle_motion/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+```
+
+#### 8. Answer: What is /odom frequency? Why does frequency matter for robot control?
+
+The measured `/odom` frequency is about **~29.4 Hz**. Frequency matters because higher and stable update rates give more timely state feedback for control and navigation loops, while low or unstable rates can cause laggy or less accurate robot behavior.
+
+#### 9. Answer: How many publishers and subscribers does /cmd_vel have when your nodes are running? List them.
+
+`/cmd_vel` has **1 publisher** and **1 subscriber** while the nodes are running.
+Publisher: /circle_motion
+Subscriber: /turtlebot3_diff_drive
+
+#### 10. Answer: What’s the difference between ros2 topic hz and ros2 topic bw? 
+
+ros2 topic hz measures how frequently messages arrive. ros2 topic bw measures data throughput, which depends on both message frequency and message size.
+
+### Task 2b
+
+#### RQT Graph
+
+![image](graph.png)
+
+#### 1. Explain: What does the graph show? How are nodes connected?
+
+The graph represents the communication between ROS2 nodes through topics in a publish subscribe system. The circle_motion node publishes the movement commands to /cmd_vel, allowing turtlebot3_diff_drive to control the robot’s motion. It then publishes position data to /odom, which is received by the odom_monitor node. Other nodes like turtlebot3_joint_state and robot_state_publisher handle the robot’s state information via /joint_states
+
+#### 2. What happens if you stop the `circle_motion` node? Does `odom_monitor` still work? Why?
+
+Stopping the circle_motion node prevents new commands from being sent to /cmd_vel, but the robot continues moving because it retains the last command. To stop it properly, a zero-velocity command must be sent.
+
+The odom_monitor node continues to operate because it receives data from /odom, which is still published by turtlebot3_diff_drive. ROS2 nodes communicate independently through topics, allowing them to function as long as the relevant topics remain active.
+
+---
+
 # Lecture 6: ROS 2 Concepts & Building Software Packages
 
 
