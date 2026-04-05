@@ -1,9 +1,12 @@
 ## Exercise 6 Submission Notes
+
+Name: Rodrigo Friaes
+Student-ID: 24-219-909
+ROS2 Humble
+
 [My fork](https://github.com/friaes/lecture6-ros2demo)
 
 ### Task 1a: Package Creation & Circle Motion Publisher
-
-Implemented package: `student_robotics` (ament_python)
 
 #### 1. Package structure (`tree student_robotics`)
 
